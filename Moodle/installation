@@ -1,0 +1,92 @@
+#Moodle will be installed on RHEL Server 7.4
+
+Section 0: System Specs
+===================================
+          SYSTEM SPECS
+===================================
+#The installation is starting on a freshly setup VM on VirtualBox
+#The system is setup with 1024 MB RAM
+
+#Red Hat Enterprise Linux Server 7.4 (Maipo)
+#Kernel 3.10.0-693.e17.x86_64 on an x86_64
+
+Section 1: Network Configuration
+===================================
+          NETWORK CONFIG
+===================================
+#The first thing we want to do on a fresh install of RHEL on a VM is check network connectivity.
+#First ping Google's DNS
+ping 8.8.8.8
+
+#If the network is unreachable, do the following
+nmtui
+
+#This opens a text-based GUI manager to activate the connection.
+#Select Activate a connection.
+#Choose your interface with enter.
+#Navigate to back.
+#Quit
+
+Section 2: Update Your System
+===================================
+          UPDATE SYSTEM
+===================================
+#It is always a good idea to update your system on a fresh install.
+#When using YUM to install/update your system it will try to look for repositories to pull packages.
+#A repository is essentially, as the name suggests, a location to store files.
+#These repositories can have files with extension .rpm, .txt, etc.
+#A .rpm package will contain commands to build and compile code, once completed, it is pushed to a repo.
+#You install a repo to your system and then use yum to add it to /etc/yum.repos.d
+#When you run yum update, it goes to that file and pulls any new repos; this is how companies push updates to packages.
+
+#Run the following command to check for updates on the system
+#Note, this will not actually update the system, it will just show you what is there in case you don't want to install something you don't want.
+yum check-update
+
+#Once you have verified that all the updates are "to your standards", run the following command
+yum update
+
+Section 2.1 Registering Your System
+===================================
+       SYSTEM REGISTRATION
+===================================
+#When using RHEL, you can only use the package managers with a valid subscription.
+#This can be done with the following command
+subscription-manager register
+
+#This will prompt you to enter a username and password.
+#The username and password are what you use to log into the RHEL Customer Portal.
+
+
+Section 3: Installing Packages
+===================================
+       PACKAGE INSTALLATION
+===================================
+#We will need a few packages in order to get Moodle up and running.
+#Moodle is, essentially, a web server that generates default template web pages, and a web interface that allows users to edit.
+# Think of it as a website builder, like Weebly/Wix, just 100% different in terms of functionality.
+
+#Let's start with the packages we will need.
+3.1: Apache/httpd.service
+|------ #First, let's check to see if httpd.service is on your system
+|------ systemctl status httpd (can also run command service httpd status)
+|------
+|------ #On RHEL 7.4 it is not installed by default.
+|------ #Let's install it with yum
+|------ yum install httpd
+|
+|------ #You will notice it installs a few dependencies, these are necessary for the service to run, press y to continue.
+|
+|------ #Finally, let's check the status of httpd one more time.
+|------ systemctl status httpd (you should now see green text stating 
+3.2: mysql-server
+|------ 
+3.3: php
+3.4: php-mysql
+
+#Note: To get a feel for the previous four packages, I recommend looking at http://www.rpmfind.net
+# This will explain in detail what each package means, and its intended purposes.
+
+
+
+
