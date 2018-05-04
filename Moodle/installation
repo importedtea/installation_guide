@@ -27,6 +27,23 @@ nmtui
 #Navigate to back.
 #Quit
 
+Section 1.2 Setting Your Hostname
+===================================
+       HOSTNAME CONFIGURATION
+===================================
+#In the case of using Moodle in your organization, you will need to supply your computer with a hostname that is not localhost.
+#Note: The hostname can be different than your fully qualitfied domain name, however, it should probably just be the same to make life easier.
+
+#First let's use a simple command to check what our hostname is:
+hostnamectl status
+
+#Setting your hostname
+hostnamectl set-hostname geeklab    ## static
+hostnamectl set-hostname "Geeks LAB"   ## pretty
+
+
+
+
 Section 2: Update Your System
 ===================================
           UPDATE SYSTEM
