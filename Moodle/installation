@@ -38,10 +38,7 @@ Section 1.2 Setting Your Hostname
 hostnamectl status
 
 #Setting your hostname
-hostnamectl set-hostname geeklab    ## static
-hostnamectl set-hostname "Geeks LAB"   ## pretty
-
-
+hostnamectl set-hostname moodle.organization.org     ## static
 
 
 Section 2: Update Your System
