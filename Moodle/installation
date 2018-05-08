@@ -92,15 +92,137 @@ Section 3: Installing Packages
 |------ #You will notice it installs a few dependencies, these are necessary for the service to run, press y to continue.
 |
 |------ #Finally, let's check the status of httpd one more time.
-|------ systemctl status httpd (you should now see green text stating 
-3.2: mysql-server
+|------ systemctl status httpd (you should now see green text stating active.
 |------ 
+|------ #We need to enable httpd on startup
+|------ systemctl enable httpd
+3.2: mysql-server
+|------ By default, mariadb is installed (will test with this before attempting mysql installation)
 3.3: php
 3.4: php-mysql
+|------ #Install php with the following line
+|------ yum install php php-mysql
 
 #Note: To get a feel for the previous four packages, I recommend looking at http://www.rpmfind.net
 # This will explain in detail what each package means, and its intended purposes.
 
 
 
+Section 4: Configuring the PHP file to be specific towards your site
+===================================
+       PHP CONFIGURATION
+===================================
+#There is a file in the default moodle directory, installed from their site, that contains a file called config-dist.php
+
+4.1 Backing up the PHP Configuration File
+#Backup this file by using the cp command
+cp config-dist.php config.php
+
+#This file will tell your site what to use. For instance, say you have 12 Moodle sites, each would have their own config.php file.
+#The file tells the site what database to use, where the data should be stored, and also where any site files should be stored.
+
+#Open the configuration file
+vi config.php
+
+#When the file opens
+Press i to enter insert mode
+
+#Below is a list of the important variables to change, based on your environment.
+$CFG->dbtype = "mariadb"    (<-- this must change whether you are using mysql, sqlsrv, pgsql, etc.)
+$CFG->dbhost = "localhost"  (<-- this should only change if you have a db hosted somewhere)
+$CFG->dbname = "mymoodle"   (<-- this should be the name of where you installed moodle files)
+$CFG->dbuser = "moodleuser" (<-- this should be something more unique)
+$CFG->dbpass = "moodlepass" (<-- this should be something unique)
+$CFG->prefix = "mdl_" 
+
+$CFG->wwwroot = "http://localhost/mymoodle" (<-- mymoodle will be whatever you named the path of your moodle files)
+
+$CFG->dirroot = '/usr/moodle/mymoodle'       (<-- mymoodle will be the path name you chose above)
+$CFG->dataroot = '/usr/moodle_data/mymoodle' (<-- path should lead to you moodle_data dir)
+
+#Closing the Editor
+Press Esc to leave insert mode
+Hold Shift and ZZ to leave
+- ZZ will have the same functionality as :wq
+
+
+Section 5: Configuring MariaDB
+===================================
+       MARIADB CONFIGURATION
+===================================
+#MariaDB should be installed by default, but lets just check by trying to start it
+systemctl start mariadb
+
+#Check the status of mariadb
+systemctl status mariadb
+- you should see green text saying active
+
+#Finally, enable mariadb on startup by creating a symlink
+systemctl enable mariadb
+
+5.1 Configuration of MariaDB
+#Set up MariaDB by using the following command
+ #Notice: By default root will have no password, for the first question, just press Enter
+mysql_secure_installation
+|--- Enter current password for root (enter for none): Just press the Enter
+|--- Set root password? [Y/n]: Y
+|--- New password: Enter password
+|--- Re-enter new password: Repeat password
+|--- Remove anonymous users? [Y/n]: Y
+|--- Disallow root login remotely? [Y/n]: Y
+|--- Remove test database and access to it? [Y/n]:  Y
+|--- Reload privilege tables now? [Y/n]:  Y
+
+#Restart MariaDB
+systemctl restart mariadb
+
+#Double check that it is active again
+systemctl status mariadb
+
+5.2 Creating a MariaDB database for Moodle
+#We need to start by logging in to MariaDB
+mysql -u root -p (This will ask you for the password you made in the mysql_secure_installation step above)
+
+#Create the database
+CREATE DATABASE mymoodle CHARSET 'utf8';
+
+#Grant access
+GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,ALTER ON mymoodle.* TO moodleuser@localhost IDENTIFIED BY 'moodlepass'; 
+
+#Flush privileges
+flush privileges;
+
+#Exit MariaDB
+quit
+
+
+Section 6: Configuring MariaDB
+===================================
+       APACHE CONFIGURATION
+===================================
+#Edit the apache configuration file located at /etc/httpd/conf/httpd.conf
+vi /etc/httpd/conf/httpd.conf
+
+#Add this to the bottom of your configuration file
+    <Directory "/usr/moodle/mymoodle">
+    DirectoryIndex index.php
+    AcceptPathInfo on
+    AllowOverride None
+    Options None
+    Order allow,deny
+    Allow from all
+    </Directory>
+    Alias /mymoodle "/usr/moodle/mymoodle"
+    - this allows a URL of localhost/mymoodle to redirect to the location of your Moodle site
+
+Section : Configuring Cron Job
+===================================
+       CRON CONFIGURATION
+===================================
+#Edit the file at /etc/crontab
+
+#Add the following lines to set up a cron job for each of your sites, for example:
+*/5 * * * * root /usr/bin/wget -O /dev/null http://localhost/mymoodle/admin/cron.php
+
+#For example, if you had 12 sites, you would have 12 cron tasks.
 
