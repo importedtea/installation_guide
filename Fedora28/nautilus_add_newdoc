@@ -10,3 +10,8 @@
 cd
 cd Templates
 touch file.txt
+
+# Note:
+# It seems you can only create a text file no matter what extension you give it.
+# Maybe there are other ways of adding other extension files.
+# This is just a preferred method of making a quick text file to add some notes.
