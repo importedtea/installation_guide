@@ -1,0 +1,12 @@
+# Nautilus has no option to right click and create a new text file.
+# You can get around this with the following:
+  # Navigate to your home directory using
+  # List all files
+  # Look for Templates
+  # Touch a new file
+  # Return to Nautilus and right click to find New Document option
+  
+# List of commands in order
+cd
+cd Templates
+touch file.txt
