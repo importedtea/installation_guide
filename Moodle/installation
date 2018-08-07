@@ -97,17 +97,27 @@ Section 2.1 Registering Your System
 # This section only applies to RHEL and is mandatory if you want to basically be able to do anything.
 
 
+===========================================
+ Extra Packages for Enterprise Linux (EPEL)
+===========================================
+prereq for ius
+
+===================================
+ Inline with Upstream Stable (IUS)
+===================================
+prereq: EPEL
+
 
 Section 3: Installing Packages
 ===================================
-       PACKAGE INSTALLATION
+     CORE PACKAGE INSTALLATION
 ===================================
 # We will need a few packages in order to get Moodle up and running.
 # Moodle is, at its core, a web server that generates default template web pages, and a web interface that allows users to edit.
 # Think of it as a website builder, like Weebly/Wix, just 100% different in terms of functionality and 110% more under your control.
 
 #Let's start with the packages we will need.
-3.1: Apache/httpd.service
+3.1: ~~~~apache/httpd.service~~~~
 
 # First, let's check to see if httpd.service is on your system
 # Note: systemctl and service are used depending on your system. The best way to check is to do a quick man systemctl || man service
@@ -128,34 +138,103 @@ systemctl status httpd
 # Next, we need to enable httpd on startup
 systemctl enable httpd
 
+3.2: ~~~~mariadb~~~~
+# MariaDB is the database service that will be used to store all the moodle data. We will download this with yum below:
+# Note: The mariadb databases for every site you have contain pretty much ALL data for your site. The webroot files are basically just skeleton pages that pull the data.
+yum install mariadb-server
 
-3.2: mysql-server
-
-3.3: php
-
+3.3: ~~~~php~~~~
+# PHP is a very tricky package. And by very tricky, I mean not at all, just annoying. Moodle 3.0+ requires PHP 7.0 and higher. Not a problem, however, RHEL/CentOS default repositories hold PHP5.6 by default, with no default upgrade packages in any "official" repository. Basically these distros are LTS (Long Time Support), meaning PHP7 will not come by default until another distro major version (at least from my understanding, correct me if I'm wrong). This means you will have to look elsewhere. Luckily, there is the IUS repository that can be found here https://ius.io/GettingStarted/
 
 # Note: To get a feel for the previous four packages, I recommend looking at http://www.rpmfind.net
 # This will explain in detail what each package means, and its intended purposes.
 
+# These are all the "core" packages you need to get moodle up and running. There are other packages that will be listed below that are also necessary / somewhat necessary for moodle to be maintained.
+
+===================================
+  SECONDARY PACKAGE INSTALLATION
+===================================
+# There are a few other packages that will help maintain moodle and they are the following (denoted by actual packagename)
+vim                      :     (optional)
+git                      :     (optional but recommended)
+policycoreutils-python   :     (necessary)                                         \\      
+                                                                               ___ \o\ 
+# x.1: ~~~~vim~~~~                                                            /   |     (you jumping into spikes)
+# Why install vim, well you probably shouldn't because the learning curve is /    |^^^
+# But, in all seriousness, install vim if you use vim as your default editor. If you use something else then skip this part.
+# The issue comes from vi being the default package for a possible editor on RH derivitives. Vi is about 800x more difficult than vim.
+# Vim installs "over top" of vi and uses the same command as an alias, meaning you can still type vi. Basically, it just fixes the controls.
+# If you don't dabble with linux often, I recommend using nano, which is basically installed on every system that has ever existed. It lists on the screen what the controls are to save and exit so your hand is held at every point along the way.
+yum install vim
+
+# x.2: ~~~~git~~~~
+# Why do we need git? Well, you don't. Will it make your life easier? Yes. Since moodle is hosted on github as open source, you can easily git clone the latest stable / dev branch of moodle. Installing git is very simple and doesn't involve signing up for anything (unless you want to use git for your own repos).
+yum install git
+
+# To make this section short, we will briefly talk about the syntax of downloading from anothers git repository.
+git clone https://github.com/moodle/moodle.git
+
+# In this section, just know that it navigates to the site github.com, then navigates to the moodle profile (similar to your github user account), then it navigates to their repo named moodle which has a somewhat "hidden" extension of .git
+
+# Note: This will pull whatever the latest branch is from moodle.git. You may not want this because they do have a development cycle for at least one minor version. As of writing this moodle 3.6 is the latest dev, while moodle 3.5 is the latest STABLE.
+
+# x.3: ~~~~policycoreutils-python~~~~
+# This package encompasses a lot of features. The main feature for a moodle install on (at least) CentOS 7 is SELinux. To go into even more detail it is for the semanage command for SELinux.
+# An example of how this is used is the following:
+semanage fcontext -a -t httpd_sys_rw_content_t /path/to/whatever
+
+# A break down of the command:
+semanage                      : interface with SELinux for the modification of booleans
+fcontext                      : manage file context mapping definitions
+-a                            : add
+-f                            : distinguish file type
+httpd_sys_rw_content_t        : allowing read/write for apache/www-data to modify
+/path/to/whatever             : the location of where rw_content can read / write
+
+# sources for above:
+https://linux.die.net/man/8/semanage
+https://www.serverlab.ca/tutorials/linux/web-servers-linux/configuring-selinux-policies-for-apache-web-servers/
 
 
 Section 4: Configuring the PHP file to be specific towards your site
 ===================================
        PHP CONFIGURATION
 ===================================
+
+[a] Pre-existing config.php file from previous site
+# This condition is in the case of migrating or pulling a site out of dev and copying to a new production system.
+# Let's start by backing up the config.php file; you will find this in your moodle web root location.
+# A default web root may be located at /var/www/html/moodle; or /usr/moodle; etc.
+# One way to find this is to use find (there may be a better way, but this works)
+find /var/www -name "moodle"
+or
+find /usr/ -name "moodle"
+
+# Navigate to that web root
+cd /var/www/html/moodle
+
+# Backup the config.php file
+# Note: the .backup extension is completely arbitrary, it simply changes the name because extensions do not matter on Linux.
+# Note: cp is used here because if you would use something like mv, your existing moodle site would break because it would not be able to locate config.php, as only config.php.backup would exist.
+cp -pr config.php config.php.backup
+
+# This should be all that needs to be done if a pre-existing site is in place. Modifications may have to be made later in the setup.
+
+[b] Creating a brand new config.php file on a fresh installation of moodle
 #There is a file in the default moodle directory, installed from their site, that contains a file called config-dist.php
 
 4.1 Backing up the PHP Configuration File
-#Backup this file by using the cp command
+# config-dist.php, in this case, is the default template for config.php
+# Backup this file by using the cp command
 cp config-dist.php config.php
 
-#This file will tell your site what to use. For instance, say you have 12 Moodle sites, each would have their own config.php file.
-#The file tells the site what database to use, where the data should be stored, and also where any site files should be stored.
+# This file will tell your site what to use. For instance, say you have 12 Moodle sites, each would have their own config.php file.
+# The file tells the site what database to use, where the data should be stored, and also where any site files should be stored.
 
-#Open the configuration file
+# Open the configuration file
 vi config.php
 
-#When the file opens
+# When the file opens
 Press i to enter insert mode
 
 #Below is a list of the important variables to change, based on your environment.
@@ -171,30 +250,49 @@ $CFG->wwwroot = "http://localhost/mymoodle" (<-- mymoodle will be whatever you n
 $CFG->dirroot = '/usr/moodle/mymoodle'       (<-- mymoodle will be the path name you chose above)
 $CFG->dataroot = '/usr/moodle_data/mymoodle' (<-- path should lead to you moodle_data dir)
 
-#Closing the Editor
+# Closing the Editor
 Press Esc to leave insert mode
 Hold Shift and ZZ to leave
-- ZZ will have the same functionality as :wq
+- ZZ will have the same functionality as :wq!
+
+[c] Using moodle web installer to setup config.php
+# This situation can optionally be used to setup config.php.
+# The workflow is as follows (labeled partially in sections):
+-> Section 1: Network Configuration
+-> Section 2: Update System
+-> Section 3: Core Package Installation
+-> Section 4: Secondary Package Installation
+-> Section 5: Install Moodle core STABLE files
+-> Section 6: Navigating to localhost/moodledir 
+              (localhost as in moodle server local IP address (setup in Network Configuration)
+              (moodledir as in where the moodle core files directory is located) 
+                    OR
+              192.168.0.100/moodle                : localhost example
+              moodle.company.org/moodle           : domain/hostname example
+              
+-> Section 7: From here, follow the web installer. This will take you through everything you need to have an up-and-running moodle installation. It will create your web directory with appropriate permissions, create your DB with permissions needed, etc.
 
 
 Section 5: Configuring MariaDB
 ===================================
        MARIADB CONFIGURATION
 ===================================
-#MariaDB should be installed by default, but lets just check by trying to start it
+# MariaDB is not installed by default on CentOS 7 minimal install. We covered how to install this in Core Package Installation.
+# After the installation we need to start the service manually.
 systemctl start mariadb
 
-#Check the status of mariadb
+# Let's check the status of mariadb to make sure it is running. (look for the green text stating active)
 systemctl status mariadb
-- you should see green text saying active
 
-#Finally, enable mariadb on startup by creating a symlink
+# Finally, enable mariadb on startup.
 systemctl enable mariadb
 
 5.1 Configuration of MariaDB
-#Set up MariaDB by using the following command
- #Notice: By default root will have no password, for the first question, just press Enter
+# Set up MariaDB by using the following command
 mysql_secure_installation
+
+# The options for mysql_secure_installation are the following:
+# Note: Upon initial installation there is no root password set (I believe there may be a temporary password created, but that also might just be mysql that does that). This is the reason we just push enter on the first prompt.
 |--- Enter current password for root (enter for none): Just press the Enter
 |--- Set root password? [Y/n]: Y
 |--- New password: Enter password
@@ -204,47 +302,50 @@ mysql_secure_installation
 |--- Remove test database and access to it? [Y/n]:  Y
 |--- Reload privilege tables now? [Y/n]:  Y
 
-#Restart MariaDB
+# I can't go into detail about why you should say yes to basically everything after the password, but to me they seem like a pretty good choice.
+# Another important thing to mention is that mariadb is a fork of mysql, which is maintained by some of the OG developers of mysql. I'm pretty sure they try and keep up with the releases of mysql, which is why 98.2% of the commands are equivalent. So, don't be scared if you are using a command that literally has the name mysql in it...you're not using mysql.
+
+# Restart MariaDB
 systemctl restart mariadb
 
-#Double check that it is active again
+# Double check that it is active again
 systemctl status mariadb
 
-5.2 Creating a MariaDB database for Moodle
-#We need to start by logging in to MariaDB
+===================================
+       Moodle DB Creation
+===================================
+# Creating a MariaDB database for Moodle
+# We need to start by logging in to MariaDB
 mysql -u root -p (This will ask you for the password you made in the mysql_secure_installation step above)
 
 #Create the database
-CREATE DATABASE mymoodle CHARSET 'utf8';
+CREATE DATABASE mymoodle CHARSET 'utf8mb4';
 
-#Grant access
-GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,ALTER ON mymoodle.* TO moodleuser@localhost IDENTIFIED BY 'moodlepass'; 
+# mymoodle signifies the name of your database. This is important because it determines where your moodle web files point to when looking for the data. If you are setting up moodle for, say, a school district, you should probably name it something like SchoolEC_Moodle. This will help you in the future...especially once you start managing 10+ moodle sites.
 
-#Flush privileges
-flush privileges;
+# Do not quote me, but I think utf8mb4 is what Moodle wants you to use. However, guides previous to 3.0 will tell you to use utf-8. What's the difference??? One word. Emoji.Support. Ok, fine, two words I guess.
 
-#Exit MariaDB
-quit
+# Grant access
+GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,ALTER ON mymoodle.* TO moodleuser@localhost IDENTIFIED BY 'moodlepass';
 
+# Here we are doing a few things, first:
+GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,ALTER   : basically grant all privileges to a certain user
+ON mymoodle.*                                               : grant those privilegs to the DB mymoodle, but also everything inside it
+TO moodleuser@localhost                                     : more specifically, give it to moodleuser@localhost
 
-Section 6: Configuring MariaDB
-===================================
-       APACHE CONFIGURATION
-===================================
-#Edit the apache configuration file located at /etc/httpd/conf/httpd.conf
-vi /etc/httpd/conf/httpd.conf
+*freeze* in the step above, moodleuser is created...I repeat, created. @localhost just specifies where this DB user is located. I'm pretty sure even in a production environment you would still use @localhost for the user as it just pertains to the local DB, which will probably only ever be local. *unfreeze*
 
-#Add this to the bottom of your configuration file
-    <Directory "/usr/moodle/mymoodle">
-    DirectoryIndex index.php
-    AcceptPathInfo on
-    AllowOverride None
-    Options None
-    Order allow,deny
-    Allow from all
-    </Directory>
-    Alias /mymoodle "/usr/moodle/mymoodle"
-    - this allows a URL of localhost/mymoodle to redirect to the location of your Moodle site
+IDENTIFIED BY 'moodlepass';                                 : and to verify that user can have access, give them a password to identify by.
+
+*litte freeze* once again, this creates the password for the user that was created in the previous step *very gentle increase in temperature*
+
+# Flush privileges
+FLUSH PRIVILEGES;
+
+# This step tells mariadb (mysql) to reload or refresh the grant tables.
+
+# Exit MariaDB
+exit (or quit)
 
 Section : Configuring Cron Job
 ===================================
