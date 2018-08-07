@@ -1,109 +1,140 @@
 #Moodle will be installed on RHEL Server 7.4
+#Testing will be done on a CentOS 7 VM
+
+# Note:
+# This setup takes place with a minimal install of both CentOS and RHEL7
+# This means configurations like network enabled on startup, or anything else network related must be manually configured.
+
 
 Section 0: System Specs
 ===================================
           SYSTEM SPECS
 ===================================
-#The installation is starting on a freshly setup VM on VirtualBox
-#The system is setup with 1024 MB RAM
+# The installation is starting on a freshly setup VM on VirtualBox
+# The system is setup with 2048 MB RAM (although 1024 will do fine for dev testing)
 
-#Red Hat Enterprise Linux Server 7.4 (Maipo)
-#Kernel 3.10.0-693.e17.x86_64 on an x86_64
+## Production
+Red Hat Enterprise Linux Server 7.4 (Maipo)
+Kernel 3.10.0-693.e17.x86_64 on an x86_64
+
+## Testing
+CentOS Linux (Core)
+Kernel 3.10.0-862.9.1.el7.x86_64 on an x86_64
 
 Section 1: Network Configuration
 ===================================
           NETWORK CONFIG
 ===================================
-#The first thing we want to do on a fresh install of RHEL on a VM is check network connectivity.
-#First ping Google's DNS
+# The first thing we want to do on a fresh install of RHEL on a VM is check network connectivity.
+# First ping Google's DNS to get an idea if you can reach the outside world.
 ping 8.8.8.8
 
-#If the network is unreachable, do the following
-nmtui
+[a] If network is not active: (which it should not be on a minimal install, unless you flipped the switch on the anaconda installer)
+# A script was made to auto populate a static network interface. In this case enp0s3.
+# The script relies on a static path assigned by the administrator, the path is as follows.
+# Change this to whatever suits your interface.
+path=/etc/sysconfig/network-scripts/ifcfg-enp0s3
 
-#This opens a text-based GUI manager to activate the connection.
-#Select Activate a connection.
-#Choose your interface with enter.
-#Navigate to back.
-#Quit
+# Obviously in production we want to use a static IP and we want the network to boot on startup so we use the following:
+sed -i "s/dhcp/none/" $path
+sed -i "s/ONBOOT=no/ONBOOT=yes/" $path
+
+# Next we want to set the static IP, subnet mask, gateway, and any DNS servers.
+# The script prompts the user to enter IP addresses (be careful not to mess them up)
+# It uses redirection to append these values to the file, and example of the script is the following:
+read -rp "Enter a static IP" static
+echo IPADDR=$static" >> $path
+
+[b] If network is active: (i.e. you chose to enable it and potentially set static properties during the anaconda installer)
+# Then good for you. Go to the next part.
 
 Section 1.2 Setting Your Hostname
 ===================================
        HOSTNAME CONFIGURATION
 ===================================
-#In the case of using Moodle in your organization, you will need to supply your computer with a hostname that is not localhost.
-#Note: The hostname can be different than your fully qualitfied domain name, however, it should probably just be the same to make life easier.
+# In the case of using Moodle in your organization, you will need to supply your computer with a hostname that is not localhost.
+# Note: The hostname can be different than your fully qualitfied domain name, however,
+          # it should probably just be the same to make life easier.
 
-#First let's use a simple command to check what our hostname is:
+# First let's use a simple command to check what our hostname is:
+# This will also give you some more useful information about your system, such as kernel, name, etc.
 hostnamectl status
 
 #Setting your hostname
-hostnamectl set-hostname moodle.organization.org     ## static
+hostnamectl set-hostname moodle.organization.org
+
+# In the case of development, moodle.dev.org was chosen as the hostname (which means absolutely nothing for a non-production system)
 
 
 Section 2: Update Your System
 ===================================
           UPDATE SYSTEM
 ===================================
-#It is always a good idea to update your system on a fresh install.
-#When using YUM to install/update your system it will try to look for repositories to pull packages.
-#A repository is essentially, as the name suggests, a location to store files.
-#These repositories can have files with extension .rpm, .txt, etc.
-#A .rpm package will contain commands to build and compile code, once completed, it is pushed to a repo.
-#You install a repo to your system and then use yum to add it to /etc/yum.repos.d
-#When you run yum update, it goes to that file and pulls any new repos; this is how companies push updates to packages.
+# It is always a good idea to update your system on a fresh install.
+# When using YUM to install/update your system it will try to look for repositories to pull packages.
+# A repository is essentially, as the name suggests, a location to store files.
+# These repositories can have files with extension .rpm, .txt, etc.
+# A .rpm package will contain commands to build and compile code, once completed, it is pushed to a repo.
+# You install a repo to your system, usually through editing /etc/yum.repos.d and then use yum to install whatever is contained.
+# When you run yum update, it goes to that file and pulls any new repos; this is how companies push updates to packages.
 
-#Run the following command to check for updates on the system
-#Note, this will not actually update the system, it will just show you what is there in case you don't want to install something you don't want.
+# Run the following command to check for updates on the system
+# Note, this will not actually update the system, it will just show you what is there in case you don't want to install something you don't want.
 yum check-update
 
-#Once you have verified that all the updates are "to your standards", run the following command
+# Once you have verified that all the updates are "to your standards", run the following command
 yum update
+
+[a] Let's talk about firewalls briefly.
+If you sit behind a firewall that is more secure than your average home security, then you might want to take a moment to troubleshoot some potential problems. How yum works can be slightly different then you invision, therefore security plays a role. Yum uses mirrors to download packages, other distros do the same, however from my experience it seems that RH based distros cause more problems than more "user-friendly" distros like Ubuntu. Whether Ubuntu mirros are from more trusted sites (determined by your firewall) that are less community based or just plainly verified or RH derivitives are more "open", I don't know (maybe someone can correct me someday). Regardless, you will have a lot of failed mirrors on RH based (especially CentOS from my dev phase). For example, something as common as git may be blocked because it uses a port number of 9418, which lets be honest, is probably blocked by your company firewall by default.
+
+In the development environment, the static IP of xxx.xxx.xxx.50 was added as an exception on our smoothwall. In a production environment you servers static IP may be apart of an exception range to begin with, check with your firewall exception rules for content filtering.
 
 Section 2.1 Registering Your System
 ===================================
        SYSTEM REGISTRATION
 ===================================
-#When using RHEL, you can only use the package managers with a valid subscription.
-#This can be done with the following command
-subscription-manager register
+# This section only applies to RHEL and is mandatory if you want to basically be able to do anything.
 
-#This will prompt you to enter a username and password.
-#The username and password are what you use to log into the RHEL Customer Portal.
 
 
 Section 3: Installing Packages
 ===================================
        PACKAGE INSTALLATION
 ===================================
-#We will need a few packages in order to get Moodle up and running.
-#Moodle is, essentially, a web server that generates default template web pages, and a web interface that allows users to edit.
-# Think of it as a website builder, like Weebly/Wix, just 100% different in terms of functionality.
+# We will need a few packages in order to get Moodle up and running.
+# Moodle is, at its core, a web server that generates default template web pages, and a web interface that allows users to edit.
+# Think of it as a website builder, like Weebly/Wix, just 100% different in terms of functionality and 110% more under your control.
 
 #Let's start with the packages we will need.
 3.1: Apache/httpd.service
-|------ #First, let's check to see if httpd.service is on your system
-|------ systemctl status httpd (can also run command service httpd status)
-|------
-|------ #On RHEL 7.4 it is not installed by default.
-|------ #Let's install it with yum
-|------ yum install httpd
-|
-|------ #You will notice it installs a few dependencies, these are necessary for the service to run, press y to continue.
-|
-|------ #Finally, let's check the status of httpd one more time.
-|------ systemctl status httpd (you should now see green text stating active.
-|------ 
-|------ #We need to enable httpd on startup
-|------ systemctl enable httpd
-3.2: mysql-server
-|------ By default, mariadb is installed (will test with this before attempting mysql installation)
-3.3: php
-3.4: php-mysql
-|------ #Install php with the following line
-|------ yum install php php-mysql
 
-#Note: To get a feel for the previous four packages, I recommend looking at http://www.rpmfind.net
+# First, let's check to see if httpd.service is on your system
+# Note: systemctl and service are used depending on your system. The best way to check is to do a quick man systemctl || man service
+systemctl status httpd (can also run command: service httpd status)
+
+# On a minimal install (or basically any install) of any distro, httpd is not installed.
+# Let's install it with yum
+yum install httpd
+
+# Note: On debian based systems, you will install something along the lines of apache || apache2
+
+# You will notice it installs a few dependencies, these are necessary for the service to run, press y to continue.
+
+# Finally, let's check the status of httpd one more time.
+systemctl status httpd 
+(you should now see green text stating active)
+
+# Next, we need to enable httpd on startup
+systemctl enable httpd
+
+
+3.2: mysql-server
+
+3.3: php
+
+
+# Note: To get a feel for the previous four packages, I recommend looking at http://www.rpmfind.net
 # This will explain in detail what each package means, and its intended purposes.
 
 
