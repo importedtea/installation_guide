@@ -100,7 +100,14 @@ Section 2.1 Registering Your System
 ===========================================
  Extra Packages for Enterprise Linux (EPEL)
 ===========================================
-prereq for ius
+Prerequisite: None
+Source: https://fedoraproject.org/wiki/EPEL#What_is_Extra_Packages_for_Enterprise_Linux_.28or_EPEL.29.3F
+
+"Extra Packages for Enterprise Linux (or EPEL) is a Fedora Special Interest Group that creates, maintains, and manages a high quality set of additional packages for Enterprise Linux, including, but not limited to, Red Hat Enterprise Linux (RHEL), CentOS and Scientific Linux (SL), Oracle Linux (OL).
+
+EPEL packages are usually based on their Fedora counterparts and will never conflict with or replace packages in the base Enterprise Linux distributions. EPEL uses much of the same infrastructure as Fedora, including buildsystem, bugzilla instance, updates manager, mirror manager and more."
+
+I have never used EPEL before this project so I can't really vouch for a good explanation on what it is / how it is used. However, I can say that 
 
 ===================================
  Inline with Upstream Stable (IUS)
