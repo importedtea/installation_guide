@@ -112,8 +112,12 @@ I have never used EPEL before this project so I can't really vouch for a good ex
 ===================================
  Inline with Upstream Stable (IUS)
 ===================================
-prereq: EPEL
+Prerequisite: EPEL
 
+It is much easier to just link the page that explains what they are about.
+https://ius.io/Philosophy/
+
+Basically, RHEL derivitives focus on very stable systems, so core packages are not updated to newer versions too often. It is only in specific cases where PHP 7 is needed. And of course, this is the case with moodle. But not everyone installs a RHEL server to run moodle so why would they care to have PHP 7 packages by default \s. The only time a new version of PHP may come to RHEL is when a new major distribution is released, i.e. RHEL 8. (I could be wrong about this...it could be something more like RHEL 7.6 or something like that)
 
 Section 3: Installing Packages
 ===================================
