@@ -1,2 +1,2 @@
-#In order to view the filesystem of an android device in nautilus you need to install the following packages
-dnf install gvfs-mtp simple-mtpfs
+gvfs-mtp
+simple-mtpfs
