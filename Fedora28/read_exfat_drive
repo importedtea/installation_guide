@@ -1,2 +1,1 @@
-# To view the contents of a drive formatted with exfat, install the following package.
-dnf install fuse-exfat
+fuse-exfat
