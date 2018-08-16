@@ -1,1 +1,2 @@
-apt-get install exfat-fuse exfat-utils
+exfat-fuse
+exfat-utils
